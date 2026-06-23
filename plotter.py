@@ -57,14 +57,24 @@ def plot_top5(worst_5, best_5, results_dir):
 def plot_hourly_pm25(hourly_trend, results_dir):
     setup_chinese_font()
 
+    # 🎯 關鍵防禦！直接在繪圖前，把不屬於工業區和郊區的欄位全部剔除！
+    # 這樣就算 main.py 沒篩乾淨，這張圖也絕對不會出現一般住宅區
+    valid_cols = [col for col in ["工業區", "郊區"] if col in hourly_trend.columns]
+    hourly_trend = hourly_trend[valid_cols]
+
     plt.figure(figsize=(12, 6))
-    hourly_trend.plot(marker="o")
+    
+    # 用手動指定顏色，確保藍色是工業區、綠色是郊區，畫面更專業
+    colors = {"工業區": "#1f77b4", "郊區": "#2ca02c"}
+    for col in hourly_trend.columns:
+        plt.plot(hourly_trend.index, hourly_trend[col], marker="o", label=col, color=colors.get(col))
 
     plt.title("工業區 vs 郊區 24 小時 PM2.5 濃度變化")
     plt.xlabel("小時")
     plt.ylabel("PM2.5 平均濃度")
     plt.xticks(range(0, 24))
     plt.grid(True)
+    plt.legend(title="站點型態")  # 顯示乾淨的圖例
     plt.tight_layout()
 
     plt.savefig(os.path.join(results_dir, "03_hourly_pm25_trend.png"), dpi=300)
