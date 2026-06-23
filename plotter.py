@@ -31,7 +31,10 @@ def plot_top5(worst_5, best_5, results_dir):
 
     # AQI 超標率最高 Top 5
     plt.figure(figsize=(10, 6))
-    worst_5["超標率(%)"].plot(kind="barh")
+    
+    # 修正：.iloc[::-1] 把資料列由後往前倒序，這樣畫出來最上面就會是第一名！
+    worst_5["超標率(%)"].iloc[::-1].plot(kind="barh", color="#e74c3c") 
+    
     plt.title("AQI 超標率最高 Top 5 測站")
     plt.xlabel("超標率 (%)")
     plt.ylabel("測站")
@@ -41,7 +44,10 @@ def plot_top5(worst_5, best_5, results_dir):
 
     # AQI 良好率最高 Top 5
     plt.figure(figsize=(10, 6))
-    best_5["良好率(%)"].plot(kind="barh")
+    
+    # 修正：同樣加上 .iloc[::-1]
+    best_5["良好率(%)"].iloc[::-1].plot(kind="barh", color="#2ecc71")
+    
     plt.title("AQI 良好率最高 Top 5 測站")
     plt.xlabel("良好率 (%)")
     plt.ylabel("測站")
@@ -57,14 +63,11 @@ def plot_top5(worst_5, best_5, results_dir):
 def plot_hourly_pm25(hourly_trend, results_dir):
     setup_chinese_font()
 
-    # 🎯 關鍵防禦！直接在繪圖前，把不屬於工業區和郊區的欄位全部剔除！
-    # 這樣就算 main.py 沒篩乾淨，這張圖也絕對不會出現一般住宅區
     valid_cols = [col for col in ["工業區", "郊區"] if col in hourly_trend.columns]
     hourly_trend = hourly_trend[valid_cols]
 
     plt.figure(figsize=(12, 6))
     
-    # 用手動指定顏色，確保藍色是工業區、綠色是郊區，畫面更專業
     colors = {"工業區": "#1f77b4", "郊區": "#2ca02c"}
     for col in hourly_trend.columns:
         plt.plot(hourly_trend.index, hourly_trend[col], marker="o", label=col, color=colors.get(col))
