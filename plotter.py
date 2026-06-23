@@ -85,7 +85,6 @@ def plot_hourly_pm25(hourly_trend, results_dir):
 def plot_aqi_pm25_scatter(df, results_dir):
     setup_chinese_font()
 
-    # 🎯 修正點 1：強制進行防禦過濾！確保繪圖時「一般住宅區」的圖例和數據點完全消失
     df_filtered = df[df["站點型態"].isin(["工業區", "郊區"])].copy()
 
     plt.figure(figsize=(10, 6))
@@ -96,7 +95,7 @@ def plot_aqi_pm25_scatter(df, results_dir):
         y="AQI",
         hue="站點型態",
         alpha=0.6,
-        palette={"工業區": "#1f77b4", "郊區": "#2ca02c"} # 固定顏色，呼應圖表二
+        palette={"工業區": "#1f77b4", "郊區": "#2ca02c"}
     )
 
     plt.title("高屏區 AQI 與 PM2.5 相關性分析")
@@ -138,12 +137,10 @@ def plot_monthly_aqi_level(df, results_dir):
         .unstack(fill_value=0)
     )
 
-    # 🎯 修正點 2：手動重新排序欄位，確保堆疊圖是由好到壞依序疊上去
     level_order = ["良好", "普通", "對敏感族群不健康", "對所有族群不健康", "非常不健康"]
     exist_levels = [lvl for lvl in level_order if lvl in monthly_level.columns]
     monthly_level = monthly_level[exist_levels]
 
-    # 🎯 修正點 3：精準對齊環境部官方的空品分級顏色（綠、黃、橘、紅、紫）
     color_map = {
         "良好": "#2ecc71",            # 綠色
         "普通": "#f1c40f",            # 黃色
@@ -158,13 +155,13 @@ def plot_monthly_aqi_level(df, results_dir):
         kind="bar",
         stacked=True,
         figsize=(12, 6),
-        color=plot_colors # 注入標準空品色彩
+        color=plot_colors
     )
 
     plt.title("AQI 等級月份變化圖")
     plt.xlabel("月份")
     plt.ylabel("筆數")
-    plt.legend(title="AQI等級", bbox_to_anchor=(1.05, 1), loc='upper left') # 把圖例移到外側避免擋到圖
+    plt.legend(title="AQI等級", bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
 
     plt.savefig(os.path.join(results_dir, "05_monthly_aqi_level.png"), dpi=300)
