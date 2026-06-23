@@ -44,62 +44,31 @@ def main():
 
     print("Top5 排序完成")
 
-    # =========================
-    # Step4 工業區與郊區分類
-    # =========================
-
-    comparison, hourly_trend = (
-        classify_stations_and_compare(
-            pivoted_df
-        )
-    )
-
-    print("型態分類完成")
-
-    # =========================
-    # Step5 建立站點型態欄位
-    # 散佈圖需要使用
-    # =========================
-
+    # =========================================================
+    # Step4 建立站點型態欄位 (移到前面！這樣 Logic 模組才抓得到標籤)
+    # =========================================================
     type_map = {}
-
     for station in pivoted_df["SiteName"].unique():
-
-        # 工業區測站
-        if station in [
-            '小港',
-            '林園',
-            '大寮',
-            '仁武',
-            '前鎮',
-            '復興',
-            '楠梓'
-        ]:
+        if station in ['小港', '林園', '大寮', '仁武', '前鎮', '復興', '楠梓']:
             type_map[station] = "工業區"
-
-        # 郊區測站
-        elif station in [
-            '美濃',
-            '恆春',
-            '潮州',
-            '橋頭'
-        ]:
+        elif station in ['美濃', '恆春', '潮州', '橋頭']:
             type_map[station] = "郊區"
-
-        # 其他測站
         else:
             type_map[station] = "一般住宅區"
 
     # 新增型態欄位
-    pivoted_df["站點型態"] = (
-        pivoted_df["SiteName"]
-        .map(type_map)
-    )
+    pivoted_df["站點型態"] = pivoted_df["SiteName"].map(type_map)
+    print("型態欄位建立完成")
 
-    # =========================
+    # =========================================================
+    # Step5 工業區與郊區分類 (等欄位有了，再讓 Logic 模組進來分析)
+    # =========================================================
+    comparison, hourly_trend = classify_stations_and_compare(pivoted_df)
+    print("型態分類完成")
+
+    # =========================================================
     # Step6 輸出圖表
-    # =========================
-
+    # =========================================================
     create_all_plots(
         pivoted_df,
         worst_5,
@@ -107,7 +76,6 @@ def main():
         hourly_trend,
         results_dir="results"
     )
-
     print("專題執行完成")
 
 
