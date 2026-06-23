@@ -31,10 +31,7 @@ def plot_top5(worst_5, best_5, results_dir):
 
     # AQI 超標率最高 Top 5
     plt.figure(figsize=(10, 6))
-    
-    # 修正：.iloc[::-1] 把資料列由後往前倒序，這樣畫出來最上面就會是第一名！
     worst_5["超標率(%)"].iloc[::-1].plot(kind="barh", color="#e74c3c") 
-    
     plt.title("AQI 超標率最高 Top 5 測站")
     plt.xlabel("超標率 (%)")
     plt.ylabel("測站")
@@ -44,10 +41,7 @@ def plot_top5(worst_5, best_5, results_dir):
 
     # AQI 良好率最高 Top 5
     plt.figure(figsize=(10, 6))
-    
-    # 修正：同樣加上 .iloc[::-1]
     best_5["良好率(%)"].iloc[::-1].plot(kind="barh", color="#2ecc71")
-    
     plt.title("AQI 良好率最高 Top 5 測站")
     plt.xlabel("良好率 (%)")
     plt.ylabel("測站")
@@ -77,7 +71,7 @@ def plot_hourly_pm25(hourly_trend, results_dir):
     plt.ylabel("PM2.5 平均濃度")
     plt.xticks(range(0, 24))
     plt.grid(True)
-    plt.legend(title="站點型態")  # 顯示乾淨的圖例
+    plt.legend(title="站點型態")
     plt.tight_layout()
 
     plt.savefig(os.path.join(results_dir, "03_hourly_pm25_trend.png"), dpi=300)
@@ -87,19 +81,22 @@ def plot_hourly_pm25(hourly_trend, results_dir):
 # ==========================================================
 # 圖表三：高屏區 AQI 與 PM2.5 相關性分析
 # 圖表類型：散佈圖
-# hue="站點型態" 讓不同測站類型用不同顏色呈現
 # ==========================================================
 def plot_aqi_pm25_scatter(df, results_dir):
     setup_chinese_font()
 
+    # 🎯 修正點 1：強制進行防禦過濾！確保繪圖時「一般住宅區」的圖例和數據點完全消失
+    df_filtered = df[df["站點型態"].isin(["工業區", "郊區"])].copy()
+
     plt.figure(figsize=(10, 6))
 
     sns.scatterplot(
-        data=df,
+        data=df_filtered,
         x="PM2.5",
         y="AQI",
         hue="站點型態",
-        alpha=0.6
+        alpha=0.6,
+        palette={"工業區": "#1f77b4", "郊區": "#2ca02c"} # 固定顏色，呼應圖表二
     )
 
     plt.title("高屏區 AQI 與 PM2.5 相關性分析")
@@ -118,13 +115,9 @@ def plot_aqi_pm25_scatter(df, results_dir):
 def plot_monthly_aqi_level(df, results_dir):
     setup_chinese_font()
 
-    # copy 一份資料，避免直接改到 main.py 傳進來的原始 DataFrame
     df = df.copy()
-
-    # 從 Datetime 欄位取出月份
     df["Month"] = df["Datetime"].dt.month
 
-    # 依 AQI 數值分類成不同等級
     def get_aqi_level(aqi):
         if aqi <= 50:
             return "良好"
@@ -137,26 +130,41 @@ def plot_monthly_aqi_level(df, results_dir):
         else:
             return "非常不健康"
 
-    # 新增 AQI 等級欄位
     df["AQI等級"] = df["AQI"].apply(get_aqi_level)
 
-    # 依月份與 AQI 等級統計筆數
     monthly_level = (
         df.groupby(["Month", "AQI等級"])
         .size()
         .unstack(fill_value=0)
     )
 
+    # 🎯 修正點 2：手動重新排序欄位，確保堆疊圖是由好到壞依序疊上去
+    level_order = ["良好", "普通", "對敏感族群不健康", "對所有族群不健康", "非常不健康"]
+    exist_levels = [lvl for lvl in level_order if lvl in monthly_level.columns]
+    monthly_level = monthly_level[exist_levels]
+
+    # 🎯 修正點 3：精準對齊環境部官方的空品分級顏色（綠、黃、橘、紅、紫）
+    color_map = {
+        "良好": "#2ecc71",            # 綠色
+        "普通": "#f1c40f",            # 黃色
+        "對敏感族群不健康": "#e67e22",  # 橘色
+        "對所有族群不健康": "#e74c3c",  # 紅色
+        "非常不健康": "#9b59b6"         # 紫色
+    }
+    plot_colors = [color_map[lvl] for lvl in exist_levels]
+
     # 畫堆疊長條圖
     monthly_level.plot(
         kind="bar",
         stacked=True,
-        figsize=(12, 6)
+        figsize=(12, 6),
+        color=plot_colors # 注入標準空品色彩
     )
 
     plt.title("AQI 等級月份變化圖")
     plt.xlabel("月份")
     plt.ylabel("筆數")
+    plt.legend(title="AQI等級", bbox_to_anchor=(1.05, 1), loc='upper left') # 把圖例移到外側避免擋到圖
     plt.tight_layout()
 
     plt.savefig(os.path.join(results_dir, "05_monthly_aqi_level.png"), dpi=300)
@@ -168,20 +176,9 @@ def plot_monthly_aqi_level(df, results_dir):
 # main.py 只需要呼叫這個函式即可
 # ==========================================================
 def create_all_plots(df, worst_5, best_5, hourly_trend, results_dir="results"):
-
-    # 如果 results/ 不存在，就自動建立
     os.makedirs(results_dir, exist_ok=True)
-
-    # 圖表一：Top 5 排名圖
     plot_top5(worst_5, best_5, results_dir)
-
-    # 圖表二：24 小時 PM2.5 折線圖
     plot_hourly_pm25(hourly_trend, results_dir)
-
-    # 圖表三：AQI 與 PM2.5 散佈圖
     plot_aqi_pm25_scatter(df, results_dir)
-
-    # 圖表四：AQI 等級月份堆疊圖
     plot_monthly_aqi_level(df, results_dir)
-
     print("四張圖表已輸出到 results/ 資料夾")
